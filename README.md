@@ -30,6 +30,15 @@ To use the bot, follow these steps:
 
 This project is open source and available under the [MIT License](LICENSE).
 
+## Future Implementations
+
+Here are some planned features and improvements for Mały Warchlak:
+
+- Display quotes from Captain Bomba and the Bonner cartoon.
+- Implement image generation features.
+- Add a simple gambling game.
+- Enable music playback on a voice channel.
+
 ## Author
 
 Kraverek
