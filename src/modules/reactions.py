@@ -87,7 +87,9 @@ class ReactionCog(commands.Cog):
         response = client.completions.create(
             prompt=message_to_ai,
             model="gpt-3.5-turbo-instruct",
-            top_p=0.5, max_tokens=25
+            top_p=0.5,
+            max_tokens=50,
+            temperature=0.7
             )
         response_from_ai = response.choices[0].text
         logging.info(f"CHAT OPEN AI RESPONSE: {response_from_ai}")
