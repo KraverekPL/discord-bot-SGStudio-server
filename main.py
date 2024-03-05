@@ -17,8 +17,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    logging.info(f'Logged in as {bot.user.name} ({bot.user.id})')
     logging.info('---------------------------------------------------------------')
+    logging.info(f'Logged in as {bot.user.name} ({bot.user.id})')
     logging.info(f'Loading cogs:')
 
     do_not_load_those_cogs = ['__init__']
@@ -33,6 +33,8 @@ async def on_ready():
 
     logging.info(f'All cogs successfully loaded!')
     logging.info(f'Log level: '+os.getenv('log_level'))
+    logging.info(f'Bot silent time: '+os.getenv('bot_silent_time'))
+    logging.info(f'Enable AI (OpenAI): '+os.getenv('enabled_ai'))
     logging.info('---------------------------------------------------------------')
 
 
