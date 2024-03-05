@@ -80,7 +80,6 @@ class ReactionCog(commands.Cog):
     def get_bot_reaction_status(self):
         return "disabled" if self.DISABLE_REACTIONS else "enabled"
 
-
     def chat_with_gpt(self, message_to_ai):
         # Send a message to the ChatGPT API and get a response
         client = OpenAI(api_key=os.getenv('open_ai_token'))
@@ -90,12 +89,22 @@ class ReactionCog(commands.Cog):
             top_p=0.5,
             max_tokens=50,
             temperature=0.7
-            )
+        )
         response_from_ai = response.choices[0].text
         logging.info(f"Response from API OpenAI: {response_from_ai}")
         return response_from_ai
 
-
+    @commands.command(name='pobudka')
+    async def wake_up_bot(self, ctx):
+        """Command to wake up the bot by administrators."""
+        allowed_user_ids = {340938249344122881}
+        if ctx.author.guild_permissions.administrator or ctx.author.id in allowed_user_ids:
+            self.DISABLE_REACTIONS = False
+            logging.info(f"ReactionCog is enabled again. Status: {self.get_bot_reaction_status()}")
+            await ctx.send("Bot został obudzony!")
+        else:
+            helper_user = self.bot.get_user(267243681021427713)
+            await ctx.send(f"Nie masz uprawnień do tej komendy! Tylko {helper_user.mention} może wykonać ta komende.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -159,11 +168,12 @@ class ReactionCog(commands.Cog):
                     # If the message is empty and the bot is not mentioned - send friendly wake up
                     rng_response_for_friendly_taunt = random.choice(self.responses_to_taunts)
                     await message.channel.send(rng_response_for_friendly_taunt)
-                    logging.info(f"Response for call friendly bot with {message.content.strip()}:{rng_response_for_friendly_taunt}")
+                    logging.info(
+                        f"Response for call friendly bot with {message.content.strip()}:{rng_response_for_friendly_taunt}")
                 elif message.content.strip() and self.bot.user.mentioned_in(message) and enable_ai:
                     # If the message has content and the bot is mentioned - send it to Open API gateway
                     short_answer = '. Odpowiedz krótko.'
-                    response_from_ai = self.chat_with_gpt(message.content.strip()+short_answer)
+                    response_from_ai = self.chat_with_gpt(message.content.strip() + short_answer)
                     await message.channel.send(response_from_ai)
                     logging.info(f"Response from OpenAi with msg: {message.content.strip()}:{response_from_ai}")
 
