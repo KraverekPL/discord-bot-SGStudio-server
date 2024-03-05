@@ -3,11 +3,11 @@ import asyncio
 import logging
 import os
 import random
-import openai
 
-from openai import OpenAI
 from discord.ext import commands
-from ..utils.commons import send_funny_fallback_msg, remove_polish_chars
+from openai import OpenAI
+
+from ..utils.commons import remove_polish_chars
 
 
 class ReactionCog(commands.Cog):
@@ -92,7 +92,7 @@ class ReactionCog(commands.Cog):
             temperature=0.7
             )
         response_from_ai = response.choices[0].text
-        logging.info(f"CHAT OPEN AI RESPONSE: {response_from_ai}")
+        logging.info(f"Response from API OpenAI: {response_from_ai}")
         return response_from_ai
 
 
@@ -162,7 +162,8 @@ class ReactionCog(commands.Cog):
                     logging.info(f"Response for call friendly bot with {message.content.strip()}:{rng_response_for_friendly_taunt}")
                 elif message.content.strip() and self.bot.user.mentioned_in(message) and enable_ai:
                     # If the message has content and the bot is mentioned - send it to Open API gateway
-                    response_from_ai = self.chat_with_gpt(message.content.strip())
+                    short_answer = '. Odpowiedz krótko.'
+                    response_from_ai = self.chat_with_gpt(message.content.strip()+short_answer)
                     await message.channel.send(response_from_ai)
                     logging.info(f"Response from OpenAi with msg: {message.content.strip()}:{response_from_ai}")
 
