@@ -104,7 +104,8 @@ class ReactionCog(commands.Cog):
             for word in spam_hooks:
                 if word in message.content.lower():
                     self.DISABLE_REACTIONS = not self.DISABLE_REACTIONS
-                    logging.info(f"ReactionCog will be disabled for {sleep_time}. Status: {self.get_bot_reaction_status()}")
+                    logging.info(
+                        f"ReactionCog will be disabled for {sleep_time}. Status: {self.get_bot_reaction_status()}")
                     await message.channel.send(f"Przepraszam za spam. Wyłączam moduł rekacji na 15 minut.")
                     asyncio.create_task(self.delayed_reaction_enable(900))
                     return
@@ -143,9 +144,6 @@ class ReactionCog(commands.Cog):
             # Send a random response from responses_to_taunts if no word is found - mocking :)
             if not found_word:
                 await message.channel.send(random.choice(self.responses_to_taunts))
-
-
-
 
 
 async def setup(bot):

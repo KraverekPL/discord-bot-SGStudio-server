@@ -1,9 +1,7 @@
 import os
-import unicodedata
-import logging
+from __main__ import bot
 
 from dotenv import load_dotenv
-from __main__ import bot
 
 
 async def send_funny_fallback_msg(ctx):
