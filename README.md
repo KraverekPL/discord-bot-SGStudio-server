@@ -26,6 +26,9 @@ To use the bot, follow these steps:
 - Adjust the number of available jokes or specify a source for joke retrieval in the `jokes` command.
 - Define keyword responses in the `keyword_responses.txt` file.
 
+## OpenAI Conversation
+To engage in a conversation with the bot using OpenAI, mention the bot and provide your message. The bot will respond with an intelligent reply.
+
 ## License
 
 This project is open source and available under the [MIT License](LICENSE).
