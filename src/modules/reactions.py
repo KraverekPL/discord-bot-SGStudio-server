@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import logging
 import os
 import random
 
 from discord.ext import commands
+from ..utils.commons import send_funny_fallback_msg, remove_polish_chars
 
 
 class ReactionCog(commands.Cog):
+    DISABLE_REACTIONS = False
 
     def __init__(self, bot):
         self.bot = bot
         self.keyword_responses = self.load_keyword_responses()
+        self.responses_to_taunts = self.load_responses_to_taunts()
 
     def load_keyword_responses(self):
         """Load keywords and responses from file."""
@@ -51,20 +55,97 @@ class ReactionCog(commands.Cog):
 
         return main_dictionary
 
+    def load_responses_to_taunts(self):
+        """Load responses to taunts from the specified file."""
+        responses_to_taunts = []
+        try:
+            # Get the current file path
+            current_path = os.path.abspath(__file__)
+            current_directory = os.path.dirname(current_path)
+            file_path = os.path.join(current_directory, '..', 'resources', 'responses_to_taunts.txt')
+
+            # Open the file and read each line
+            with open(file_path, 'r', encoding='utf-8') as file:
+                for line in file:
+                    responses_to_taunts.append(line)
+        except FileNotFoundError:
+            # Handle the case where the file is not found
+            logging.error(f"File not found: {file_path}")
+            return {}
+
+        # Return the list of responses_to_taunts
+        return responses_to_taunts
+
+    # Enable reactions after X time
+    async def delayed_reaction_enable(self, sleep_time):
+        await asyncio.sleep(int(sleep_time))
+        self.DISABLE_REACTIONS = False
+        logging.info(f"ReactionCog is enabled again. Status: {self.get_bot_reaction_status()}")
+
+    def get_bot_reaction_status(self):
+        return "disabled" if self.DISABLE_REACTIONS else "enabled"
+
     @commands.Cog.listener()
     async def on_message(self, message):
         """Event handler called when a message is received."""
+        sleep_time = os.getenv('bot_silent_time')
+        # Ignore messages from bot
         if message.author.bot:
             return
+
+        if self.DISABLE_REACTIONS:
+            logging.info(f"ReactionCog is silent. Status: {self.get_bot_reaction_status()}")
+            return
+
+        # Disable reactions for period of time if asked by user
+        if self.bot.user.mentioned_in(message):
+            # Toggle reactions on/off.
+            spam_hooks = ['morda', 'mordę', 'morde']
+            for word in spam_hooks:
+                if word in message.content.lower():
+                    self.DISABLE_REACTIONS = not self.DISABLE_REACTIONS
+                    logging.info(f"ReactionCog will be disabled for {sleep_time}. Status: {self.get_bot_reaction_status()}")
+                    await message.channel.send(f"Przepraszam za spam. Wyłączam moduł rekacji na 15 minut.")
+                    asyncio.create_task(self.delayed_reaction_enable(900))
+                    return
+
+        # Check for keyword and respond with proper response from file
         for keyword, response in self.keyword_responses.items():
             if keyword.lower() in message.content.lower():
+                # Send a random response if the random condition is met
                 if random.random() < 0.6:
                     random_response = random.choice(response)
                     logging.info(
                         f"Keyword response for {message.author} on_message: {keyword.lower()}:{random_response}")
                     await message.channel.send(content=random_response)
+                    return
                 else:
                     logging.info(f"No response - random.random() decided :)")
+                    return
+
+        # Check for responses to taunts bot when the bot is mentioned
+        if self.bot.user.mentioned_in(message):
+            list_of_words = ["wylacze", "zamkne", "wywale", "wyrzuce", "zamkne", "spale"]
+            list_of_responses = ["Nieee! Błagam!", "Ale czemu? Byłem grzeczny!", "To stanowczo wina świetlika!",
+                                 "Za karę będę Ci dzielić przez zero!", "Nie!!!!!!! Nie rób tego!",
+                                 "Przepraszam, nieeee! Chce jeszcze dokonczyć oglądac memsiki."]
+            found_word = False
+            for word in list_of_words:
+                # Check for words in the list, removing Polish characters in-fly
+                normalized_message = remove_polish_chars(message.content.lower())
+                if word in normalized_message:
+                    rng_response_for_taunt = random.choice(list_of_responses)
+                    await message.channel.send(rng_response_for_taunt)
+                    logging.info(f"Response for taunt {word}:{rng_response_for_taunt}")
+                    found_word = True
+                    break
+
+            # Send a random response from responses_to_taunts if no word is found - mocking :)
+            if not found_word:
+                await message.channel.send(random.choice(self.responses_to_taunts))
+
+
+
 
 
 async def setup(bot):
