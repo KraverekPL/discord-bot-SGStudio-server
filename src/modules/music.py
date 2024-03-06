@@ -67,14 +67,19 @@ class PlayMusicCog(commands.Cog):
     @commands.command(name='wyjdz')
     async def leave(self, ctx):
         voice_client = ctx.message.guild.voice_client
-        if voice_client.is_connected():
+        if voice_client is not None and voice_client.is_connected():
             await voice_client.disconnect()
+            await ctx.send("Dobra już dobra... Ide.")
             logging.info(f"Bot disconnected with voice channel.")
         else:
             await ctx.send(f"Przecież nie siedze na czacie z Wami, to po ci mnie pingasz {ctx.message.author.name}.")
 
     @commands.command(name='graj')
-    async def play(self, ctx, url):
+    async def play(self, ctx, url=None):
+        if not url:
+            logging.error("Empty URL provided for play command.")
+            await ctx.send("A co mam niby zagrać? Daj mi link czy coś.")
+            return
         voice_client = ctx.voice_client
         if not voice_client.is_playing():
             ydl_opts = {'format': 'bestaudio', 'verbose': True}
@@ -83,7 +88,7 @@ class PlayMusicCog(commands.Cog):
                 voice_client.play(discord.FFmpegPCMAudio(executable=r'E:\software\mpeg\bin\mpeg.exe', source=filename))
             logging.info(f"Bot is playing music from url: {url}")
         else:
-            await ctx.send("Już przecież gram! Albo mnie zastopuj !stop, albo zmień utwór !graj url  😎")
+            await ctx.send("Już przecież gram! Najpierw mnie zastopuj !stop, albo nie wiem, idz na piwo...  😎")
             logging.info(f"Bot is already playing music.")
 
     @commands.command(name='stop')
