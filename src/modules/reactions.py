@@ -71,6 +71,7 @@ def chat_with_gpt(message_to_ai):
         token = os.getenv('open_ai_token')
         model_ai = os.getenv('open_ai_model')
         max_tokens = int(os.getenv('open_ai_max_tokens'))
+        ai_behaviour = os.getenv('ai_behaviour')
         response_from_ai = None
         if 'gpt-3.5-turbo-instruct' in model_ai:
             client = OpenAI(api_key=token)
@@ -85,7 +86,7 @@ def chat_with_gpt(message_to_ai):
             messages = [
                 {
                     "role": "system",
-                    "content": "Jesteś zabawny, lubisz piwo, kupujesz w Lidlu, masz na imie Mały Warchlak"
+                    "content": ai_behaviour
                 },
                 {
                     "role": "user",
@@ -100,7 +101,7 @@ def chat_with_gpt(message_to_ai):
             )
             response_from_ai = response.choices[0].message.content
 
-        logging.info(f"Response from API OpenAI: {response_from_ai}. Costs: {response.usage.total_tokens}")
+        logging.info(f"Response from API OpenAI: {response_from_ai}. Costs: {response.usage.prompt_tokens}+{response.usage.completion_tokens}={response.usage.total_tokens}")
         return response_from_ai
     except Exception as e:
         logging.error(f"Error during calling OpenAI API e: {e.with_traceback()}")
