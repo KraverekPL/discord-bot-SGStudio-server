@@ -10,66 +10,87 @@ from openai import OpenAI
 from ..utils.commons import remove_polish_chars
 
 
+def load_keyword_responses():
+    """Load keywords and responses from file."""
+    main_dictionary = {}
+    try:
+        current_path = os.path.abspath(__file__)
+        current_directory = os.path.dirname(current_path)
+        file_path = os.path.join(current_directory, '..', 'resources', 'keyword_responses.txt')
+        with open(file_path, 'r', encoding='utf-8') as file:
+            for line in file:
+                if ':' in line:
+                    keywords, responses = line.strip().split(':', 1)
+                    for single_keyword in keywords.split(','):
+                        main_dictionary[single_keyword] = responses.strip().split('|')
+                else:
+                    logging.warning(f"Invalid line format in the file: {line}")
+    except FileNotFoundError:
+        logging.error(f"File not found: {file_path}")
+        return {}
+    except Exception as e:
+        logging.error(f"Exception e: {e}")
+        return {}
+    logging.debug(f"Loaded keyword_responses: {main_dictionary}")
+
+    # Checking if dictionary is loaded properly
+    if not main_dictionary:
+        logging.warning("Empty or invalid keyword_responses dictionary.")
+    for keyword, response in main_dictionary.items():
+        if not isinstance(keyword, str) or not isinstance(response, list):
+            logging.warning("Invalid format in keyword_responses.")
+    for keyword, response in main_dictionary.items():
+        if not response:
+            logging.warning(f"Empty response for keyword: {keyword}.")
+    return main_dictionary
+
+
+def load_responses_to_taunts():
+    """Load responses to taunts from the specified file."""
+    responses_to_taunts = []
+    try:
+        # Get the current file path
+        current_path = os.path.abspath(__file__)
+        current_directory = os.path.dirname(current_path)
+        file_path = os.path.join(current_directory, '..', 'resources', 'responses_to_taunts.txt')
+        # Open the file and read each line
+        with open(file_path, 'r', encoding='utf-8') as file:
+            for line in file:
+                responses_to_taunts.append(line)
+    except FileNotFoundError:
+        # Handle the case where the file is not found
+        logging.error(f"File not found: {file_path}")
+        return {}
+    # Return the list of responses_to_taunts
+    return responses_to_taunts
+
+
+def chat_with_gpt(message_to_ai):
+    # Send a message to the ChatGPT API and get a response
+    try:
+        client = OpenAI(api_key=os.getenv('open_ai_token'))
+        response = client.completions.create(
+            prompt=message_to_ai,
+            model=os.getenv('open_ai_model'),
+            top_p=float(os.getenv('open_ai_top_p')),
+            max_tokens=int(os.getenv('open_ai_max_tokens')),
+            temperature=float(os.getenv('open_ai_temperature'))
+        )
+        response_from_ai = response.choices[0].text
+        logging.info(f"Response from API OpenAI: {response_from_ai}")
+        return response_from_ai
+    except Exception as e:
+        logging.error(f"Error during calling OpenAI API e: {e.with_traceback()}")
+
+
+
 class ReactionCog(commands.Cog):
     DISABLE_REACTIONS = False
 
     def __init__(self, bot):
         self.bot = bot
-        self.keyword_responses = self.load_keyword_responses()
-        self.responses_to_taunts = self.load_responses_to_taunts()
-
-    def load_keyword_responses(self):
-        """Load keywords and responses from file."""
-        main_dictionary = {}
-        try:
-            current_path = os.path.abspath(__file__)
-            current_directory = os.path.dirname(current_path)
-            file_path = os.path.join(current_directory, '..', 'resources', 'keyword_responses.txt')
-            with open(file_path, 'r', encoding='utf-8') as file:
-                for line in file:
-                    if ':' in line:
-                        keywords, responses = line.strip().split(':', 1)
-                        for single_keyword in keywords.split(','):
-                            main_dictionary[single_keyword] = responses.strip().split('|')
-                    else:
-                        logging.warning(f"Invalid line format in the file: {line}")
-        except FileNotFoundError:
-            logging.error(f"File not found: {file_path}")
-            return {}
-        except Exception as e:
-            logging.error(f"Exception e: {e}")
-            return {}
-        logging.debug(f"Loaded keyword_responses: {main_dictionary}")
-
-        # Checking if dictionary is loaded properly
-        if not main_dictionary:
-            logging.warning("Empty or invalid keyword_responses dictionary.")
-        for keyword, response in main_dictionary.items():
-            if not isinstance(keyword, str) or not isinstance(response, list):
-                logging.warning("Invalid format in keyword_responses.")
-        for keyword, response in main_dictionary.items():
-            if not response:
-                logging.warning(f"Empty response for keyword: {keyword}.")
-        return main_dictionary
-
-    def load_responses_to_taunts(self):
-        """Load responses to taunts from the specified file."""
-        responses_to_taunts = []
-        try:
-            # Get the current file path
-            current_path = os.path.abspath(__file__)
-            current_directory = os.path.dirname(current_path)
-            file_path = os.path.join(current_directory, '..', 'resources', 'responses_to_taunts.txt')
-            # Open the file and read each line
-            with open(file_path, 'r', encoding='utf-8') as file:
-                for line in file:
-                    responses_to_taunts.append(line)
-        except FileNotFoundError:
-            # Handle the case where the file is not found
-            logging.error(f"File not found: {file_path}")
-            return {}
-        # Return the list of responses_to_taunts
-        return responses_to_taunts
+        self.keyword_responses = load_keyword_responses()
+        self.responses_to_taunts = load_responses_to_taunts()
 
     # Enable reactions after X time
     async def delayed_reaction_enable(self, sleep_time):
@@ -80,28 +101,14 @@ class ReactionCog(commands.Cog):
     def get_bot_reaction_status(self):
         return "disabled" if self.DISABLE_REACTIONS else "enabled"
 
-    def chat_with_gpt(self, message_to_ai):
-        # Send a message to the ChatGPT API and get a response
-        client = OpenAI(api_key=os.getenv('open_ai_token'))
-        response = client.completions.create(
-            prompt=message_to_ai,
-            model="gpt-3.5-turbo-instruct",
-            top_p=0.5,
-            max_tokens=50,
-            temperature=0.7
-        )
-        response_from_ai = response.choices[0].text
-        logging.info(f"Response from API OpenAI: {response_from_ai}")
-        return response_from_ai
-
     @commands.command(name='pobudka')
     async def wake_up_bot(self, ctx):
         """Command to wake up the bot by administrators."""
-        allowed_user_ids = {340938249344122881}
+        allowed_user_ids = {os.getenv('target_user_id')}
         if ctx.author.guild_permissions.administrator or ctx.author.id in allowed_user_ids:
             self.DISABLE_REACTIONS = False
             logging.info(f"ReactionCog is enabled again. Status: {self.get_bot_reaction_status()}")
-            await ctx.send("Bot został obudzony!")
+            await ctx.send("Bot został wybudzony!")
         else:
             helper_user = self.bot.get_user(267243681021427713)
             await ctx.send(f"Nie masz uprawnień do tej komendy! Tylko {helper_user.mention} może wykonać ta komende.")
@@ -113,7 +120,7 @@ class ReactionCog(commands.Cog):
         # Ignore messages from bot
         if message.author.bot:
             return
-
+        # Disable all response from bot
         if self.DISABLE_REACTIONS:
             logging.info(f"ReactionCog is silent for message: {message.content}. Status: {self.get_bot_reaction_status()}")
             return
@@ -151,7 +158,6 @@ class ReactionCog(commands.Cog):
             list_of_responses = ["Nieee! Błagam!", "Ale czemu? Byłem grzeczny!", "To stanowczo wina świetlika!",
                                  "Za karę będę Ci dzielić przez zero!", "Nie!!!!!!! Nie rób tego!",
                                  "Przepraszam, nieeee! Chce jeszcze dokonczyć oglądac memsiki."]
-            found_word = False
             for word in list_of_words:
                 # Check for words in the list, removing Polish characters in-fly
                 normalized_message = remove_polish_chars(message.content.lower())
@@ -159,23 +165,27 @@ class ReactionCog(commands.Cog):
                     rng_response_for_scary_taunt = random.choice(list_of_responses)
                     await message.channel.send(rng_response_for_scary_taunt)
                     logging.info(f"Response for scary taunt a bot with {word}:{rng_response_for_scary_taunt}")
-                    found_word = True
-                    break
+                    return
 
-            if not found_word:
-                enable_ai = os.getenv("enabled_ai", 'False').lower() in ('true', '1', 't')
-                if message.content.strip() == f'<@{self.bot.user.id}>':
-                    # If the message is empty and the bot is not mentioned - send friendly wake up
-                    rng_response_for_friendly_taunt = random.choice(self.responses_to_taunts)
-                    await message.channel.send(rng_response_for_friendly_taunt)
-                    logging.info(
+        # If a bot is mentioned, it will say hello or answer your question depending on the content of the message
+        if self.bot.user.mentioned_in(message):
+            enable_ai = os.getenv("enabled_ai", 'False').lower() in ('true', '1', 't')
+            if message.content.strip() == f'<@{self.bot.user.id}>':
+                # If the message is empty and the bot is not mentioned - send friendly wake up
+                rng_response_for_friendly_taunt = random.choice(self.responses_to_taunts)
+                await message.channel.send(rng_response_for_friendly_taunt)
+                logging.info(
                         f"Response for call friendly bot with {message.content.strip()}:{rng_response_for_friendly_taunt}")
-                elif message.content.strip() and self.bot.user.mentioned_in(message) and enable_ai:
-                    # If the message has content and the bot is mentioned - send it to Open API gateway
+            elif message.content.strip() and self.bot.user.mentioned_in(message):
+                # If the message has content and the bot is mentioned - send it to Open API gateway
+                if enable_ai:
                     short_answer = '. Odpowiedz krótko.'
-                    response_from_ai = self.chat_with_gpt(message.content.strip() + short_answer)
+                    response_from_ai = chat_with_gpt(message.content.strip() + short_answer)
                     await message.channel.send(response_from_ai)
                     logging.info(f"Response from OpenAi with msg: {message.content.strip()}:{response_from_ai}")
+                else:
+                    await message.channel.send('Nie wiem :(')
+                    logging.info(f"OpenAi API is turned off. Sending default message.")
 
 
 async def setup(bot):

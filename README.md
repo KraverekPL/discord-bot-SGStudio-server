@@ -6,10 +6,11 @@ Mały Warchlak is a Discord bot written in Python using the Discord.py library. 
 
 ## Features
 
-- **Meme Generation**: Use the `!mem` command to generate memes.
-- **Joke Retrieval**: Get a joke with the `!joke` command.
-- **Keyword Responses**: The bot responds to specific keywords with predefined messages.
+- **Meme Generation**: Generate memes for a touch of humor.
+- **Joke Retrieval**: Enjoy jokes fetched by the bot.
+- **Keyword Responses**: Get predefined messages in response to specific keywords.
 - **Modular Design**: Implementation is based on Discord.py cogs for easy maintenance.
+- **Additional Admin Tools**: Check the section below for new admin tools for data backup and word counting.
 
 ## Usage
 
@@ -22,12 +23,29 @@ To use the bot, follow these steps:
 
 ## Configuration
 
-- Customize meme generation by selecting categories or sources in the `memes` command.
-- Adjust the number of available jokes or specify a source for joke retrieval in the `jokes` command.
+- Customize meme generation by selecting categories or sources.
+- Adjust the number of available jokes or specify a source for joke retrieval.
 - Define keyword responses in the `keyword_responses.txt` file.
 
 ## OpenAI Conversation
 To engage in a conversation with the bot using OpenAI, mention the bot and provide your message. The bot will respond with an intelligent reply.
+
+## Admin Tools
+
+### Backup Messages from Channels
+This tool allows you to back up messages from selected channels. All messages are saved to a text file, and the most frequently occurring words are calculated.
+
+### Finding Most Popular Words in a Backup
+This tool helps find the most popular words in a backup of messages.
+
+### Dynamic Reaction Control
+You can dynamically control the bot's reactions to user events by adjusting its activity state:
+
+- **Sleep Mode**: Temporarily disables the bot's reaction to user messages.
+- **Wake Up Mode**: Re-enables the bot's reaction to user messages.
+
+This dynamic control allows you to manage the bot's activity without the need for specific commands, providing flexibility in its responsiveness.
+
 
 ## License
 
@@ -47,4 +65,3 @@ Here are some planned features and improvements for Mały Warchlak:
 Kraverek
 
 Feel free to contribute, report issues, or suggest improvements!
-

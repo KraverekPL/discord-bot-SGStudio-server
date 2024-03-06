@@ -27,6 +27,22 @@ class HelpCog(commands.Cog):
         embed.set_footer(text=footer_text)
         await ctx.send(embed=embed)
 
+    @commands.command(name='adminhelp', aliases=['commands_help'])
+    async def show_admin_help_global(self, ctx):
+        """Show all available commands."""
+        embed = discord.Embed(title="Komendy Bota", description="Mały pomocnik admina – komendy w skrócie.",  color=0xFF0000)
+        embed.set_thumbnail(url="https://cdn.discordapp.com/avatars/1214162287259025428/bc40ba46841471b5f49d3bf7d569ce58.webp?size=80")
+        embed.add_field(name="!mapuj", value="Mapuje wszystkie kanały do pliku txt, i wyswietla 30 najbardziej popularnych słów.", inline=False)
+        embed.add_field(name="!mapuj kanał_id", value="Mapuje wybranych kanał dane kanału do pliku txt, i wyswietla 30 najbardziej popularnych słów.", inline=False)
+        embed.add_field(name="!find nazwa_pliku liczba", value="Analizuje plik nazwa_pliku i wyświetla liczba popularnych słów", inline=False)
+        embed.add_field(name="morda", value="Straszy bota. Wyłącza reakcje na 15 minut. Trzeba napisać mu to jako odpowiedź na jego post.", inline=False)
+        embed.add_field(name="morda ilość_minut", value="Straszy bota. Wyłącza reakcje na ilość_minut. Trzeba napisać mu to jako odpowiedź na jego post.", inline=False)
+        embed.add_field(name="!pobudka", value="Wybudza bota. Może zostać wywałane tylko przez administartora.", inline=False)
+        source_code_link = "https://github.com/KraverekPL/discord-bot-SGStudio-server"
+        embed.add_field(name='\u200B', value=f"Źródło kodu: [link]({source_code_link})", inline=False)
+        footer_text = f"Bot stworzony przez przez Kraverek"
+        embed.set_footer(text=footer_text)
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(HelpCog(bot))
