@@ -2,6 +2,8 @@
 import logging
 import asyncio
 import os
+import random
+
 import discord
 
 from dotenv import load_dotenv
@@ -30,12 +32,24 @@ async def on_ready():
             except commands.ExtensionError as e:
                 logging.error(f'Error loading cog {filename[:-3]}: {e}')
 
+    # Adding bot status
+    await zmien_status()
+
     logging.info(f'All cogs successfully loaded!')
     logging.info(f'Log level: ' + os.getenv('log_level'))
     logging.info(f'Bot silent time: ' + os.getenv('bot_silent_time'))
     logging.info(f'Enable AI (OpenAI): ' + os.getenv('enabled_ai'))
     logging.info('---------------------------------------------------------------')
     await cleanup_temp_music()
+
+
+async def zmien_status():
+    while True:
+        with open('src/resources/bot_statuses.txt', 'r', encoding='utf-8') as file:
+            for line in file:
+                status = random.choice(line.split(','))
+                await bot.change_presence(status=str(status))
+                await asyncio.sleep(300)  # change status every 5 mins
 
 
 async def cleanup_temp_music():
