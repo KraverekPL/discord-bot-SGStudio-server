@@ -3,7 +3,7 @@ import asyncio
 import logging
 import os
 import random
-
+import openai
 from discord.ext import commands
 from openai import OpenAI
 
@@ -68,20 +68,42 @@ def load_responses_to_taunts():
 def chat_with_gpt(message_to_ai):
     # Send a message to the ChatGPT API and get a response
     try:
-        client = OpenAI(api_key=os.getenv('open_ai_token'))
-        response = client.completions.create(
-            prompt=message_to_ai,
-            model=os.getenv('open_ai_model'),
-            top_p=float(os.getenv('open_ai_top_p')),
-            max_tokens=int(os.getenv('open_ai_max_tokens')),
-            temperature=float(os.getenv('open_ai_temperature'))
-        )
-        response_from_ai = response.choices[0].text
-        logging.info(f"Response from API OpenAI: {response_from_ai}")
+        token = os.getenv('open_ai_token')
+        model_ai = os.getenv('open_ai_model')
+        max_tokens = int(os.getenv('open_ai_max_tokens'))
+        response_from_ai = None
+        if 'gpt-3.5-turbo-instruct' in model_ai:
+            client = OpenAI(api_key=token)
+            response = client.completions.create(
+                prompt=message_to_ai,
+                model=model_ai,
+                top_p=float(os.getenv('open_ai_top_p')),
+                max_tokens=max_tokens,
+                temperature=float(os.getenv('open_ai_temperature')))
+            response_from_ai = response.choices[0].text
+        elif 'gpt-3.5-turbo-0125' in model_ai:
+            messages = [
+                {
+                    "role": "system",
+                    "content": "Jesteś zabawny, lubisz piwo, kupujesz w Lidlu, masz na imie Mały Warchlak"
+                },
+                {
+                    "role": "user",
+                    "content": message_to_ai
+                }
+            ]
+            openai.api_key = token
+            response = openai.chat.completions.create(
+                messages=messages,
+                model=model_ai,
+                max_tokens=max_tokens
+            )
+            response_from_ai = response.choices[0].message.content
+
+        logging.info(f"Response from API OpenAI: {response_from_ai}. Costs: {response.usage.total_tokens}")
         return response_from_ai
     except Exception as e:
         logging.error(f"Error during calling OpenAI API e: {e.with_traceback()}")
-
 
 
 class ReactionCog(commands.Cog):
@@ -122,7 +144,8 @@ class ReactionCog(commands.Cog):
             return
         # Disable all response from bot
         if self.DISABLE_REACTIONS:
-            logging.info(f"ReactionCog is silent for message: {message.content}. Status: {self.get_bot_reaction_status()}")
+            logging.info(
+                f"ReactionCog is silent for message: {message.content}. Status: {self.get_bot_reaction_status()}")
             return
 
         # Disable reactions for period of time if asked by user
@@ -136,20 +159,6 @@ class ReactionCog(commands.Cog):
                         f"ReactionCog will be disabled for {sleep_time}. Status: {self.get_bot_reaction_status()}")
                     await message.channel.send(f"Przepraszam za spam. Wyłączam moduł rekacji na 15 minut.")
                     asyncio.create_task(self.delayed_reaction_enable(900))
-                    return
-
-        # Check for keyword and respond with proper response from file if keyword exist
-        for keyword, response in self.keyword_responses.items():
-            if keyword.lower() in message.content.lower():
-                # Send a random response if the random condition is met
-                if random.random() < 0.6:
-                    random_response = random.choice(response)
-                    logging.info(
-                        f"Keyword response for {message.author} on_message: {keyword.lower()}:{random_response}")
-                    await message.channel.send(content=random_response)
-                    return
-                else:
-                    logging.info(f"No response - random.random() decided :)")
                     return
 
         # Check for responses to taunts bot when the bot is mentioned to be silent
@@ -175,8 +184,8 @@ class ReactionCog(commands.Cog):
                 rng_response_for_friendly_taunt = random.choice(self.responses_to_taunts)
                 await message.channel.send(rng_response_for_friendly_taunt)
                 logging.info(
-                        f"Response for call friendly bot with {message.content.strip()}:{rng_response_for_friendly_taunt}")
-            elif message.content.strip() and self.bot.user.mentioned_in(message):
+                    f"Response for call friendly bot with {message.content.strip()}:{rng_response_for_friendly_taunt}")
+            else:
                 # If the message has content and the bot is mentioned - send it to Open API gateway
                 if enable_ai:
                     short_answer = '. Odpowiedz krótko.'
@@ -186,6 +195,22 @@ class ReactionCog(commands.Cog):
                 else:
                     await message.channel.send('Nie wiem :(')
                     logging.info(f"OpenAi API is turned off. Sending default message.")
+
+        # Check for keyword and respond with proper response from file if keyword exist
+        if not self.bot.user.mentioned_in(message):
+            for keyword, response in self.keyword_responses.items():
+                if keyword.lower() in message.content.lower():
+                    # Send a random response if the random condition is met
+                    magic_random = random.random()
+                    if magic_random < 0.3:
+                        random_response = random.choice(response)
+                        logging.info(
+                            f"Keyword response for {message.author} on_message: {keyword.lower()}:{random_response}")
+                        await message.channel.send(content=random_response)
+                        return
+                    else:
+                        logging.info(f"No response - random.random():{magic_random} decided :)")
+                        return
 
 
 async def setup(bot):
