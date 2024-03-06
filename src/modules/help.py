@@ -21,6 +21,10 @@ class HelpCog(commands.Cog):
         embed.add_field(name="@Mały Warchlak wiadomość", value="Wysyła pytanie/wiadomość do OpenAI i otrzymuje odpowiedź.", inline=False)
         embed.add_field(name="morda", value="Straszy bota. Wyłącza reakcje na 15 minut. Trzeba napisać mu to jako odpowiedź na jego post.", inline=False)
         embed.add_field(name="morda ilość_minut", value="Straszy bota. Wyłącza reakcje na ilość_minut. Trzeba napisać mu to jako odpowiedź na jego post.", inline=False)
+        embed.add_field(name="!wbijaj", value="Bot dołącza do kanału głosowego.", inline=False)
+        embed.add_field(name="!wyjdz", value="Bot opuszcza kanał głosowy.", inline=False)
+        embed.add_field(name="!graj <url>", value="Bot odtwarza muzykę z podanego URL.", inline=False)
+        embed.add_field(name="!stop", value="Bot zatrzymuje odtwarzanie muzyki.", inline=False)
         source_code_link = "https://github.com/KraverekPL/discord-bot-SGStudio-server"
         embed.add_field(name='\u200B', value=f"Źródło kodu: [link]({source_code_link})", inline=False)
         footer_text = f"Bot stworzony przez przez Kraverek"

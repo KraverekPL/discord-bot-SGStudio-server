@@ -7,7 +7,6 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands
 
-
 # Logging configuration
 load_dotenv(".env")
 logging.basicConfig(level=os.getenv('log_level'), format='%(asctime)s - %(levelname)s - %(funcName)s - %(message)s')
@@ -32,10 +31,24 @@ async def on_ready():
                 logging.error(f'Error loading cog {filename[:-3]}: {e}')
 
     logging.info(f'All cogs successfully loaded!')
-    logging.info(f'Log level: '+os.getenv('log_level'))
-    logging.info(f'Bot silent time: '+os.getenv('bot_silent_time'))
-    logging.info(f'Enable AI (OpenAI): '+os.getenv('enabled_ai'))
+    logging.info(f'Log level: ' + os.getenv('log_level'))
+    logging.info(f'Bot silent time: ' + os.getenv('bot_silent_time'))
+    logging.info(f'Enable AI (OpenAI): ' + os.getenv('enabled_ai'))
     logging.info('---------------------------------------------------------------')
+    await cleanup_temp_music()
+
+
+async def cleanup_temp_music():
+    folder_path = 'temp_music'  # Ustaw odpowiednią ścieżkę do folderu
+    try:
+        # Usuń wszystkie pliki w folderze temp_music
+        for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                logging.info(f"Deleting file: {file_path}")
+    except Exception as e:
+        logging.error(f'Exception during cleaning "temp_music": {e}')
 
 
 async def main():

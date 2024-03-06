@@ -8,7 +8,7 @@ from datetime import datetime
 from discord.ext import commands
 
 
-async def add_recationto_msg(message, user_id):
+async def add_reaction_to_msg(message, user_id):
     # Add a reaction to a user's message
     if message.author.id == user_id:
         try:
@@ -18,8 +18,9 @@ async def add_recationto_msg(message, user_id):
                 "😂", "😍", "🤣", "😎", "😇", "😜", "😊", "🙌", "👏", "🍀",
                 "🥳", "🤗", "🎊", "🎈", "👻", "🍩", "🍭", "🎁", "🍺", "🍸"
             ]
-            await message.add_reaction(random.choice(custom_reactions))
-            logging.info(f"Add reactions to {message.author.id} user.")
+            if random.random() < 0.1:
+                await message.add_reaction(random.choice(custom_reactions))
+                logging.info(f"Add reactions to {message.author.id} user.")
         except Exception as e:
             logging.error(f"Error adding reaction: {e.with_traceback()}")
 
@@ -113,7 +114,7 @@ class AdminToolsCog(commands.Cog):
     async def on_message(self, message):
         if message.author.bot:
             return
-        await add_recationto_msg(message, 725426177790967818)
+        await add_reaction_to_msg(message, 725426177790967818)
 
 
 async def setup(bot):
