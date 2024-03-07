@@ -3,11 +3,11 @@ import logging
 import asyncio
 import os
 import random
-
+import json
 import discord
 
 from dotenv import load_dotenv
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 # Logging configuration
 load_dotenv(".env")
@@ -30,7 +30,7 @@ async def on_ready():
                 await bot.load_extension(f'src.modules.{filename[:-3]}')
                 logging.info(f'Loaded cog: {filename[:-3]}')
             except commands.ExtensionError as e:
-                logging.error(f'Error loading cog {filename[:-3]}: {e}')
+                logging.error(f'Error loading cog {filename[:-3]}: {e.with_traceback()}')
 
     logging.info(f'All cogs successfully loaded!')
     logging.info(f'Log level: ' + os.getenv('log_level'))
@@ -39,16 +39,44 @@ async def on_ready():
     logging.info('---------------------------------------------------------------')
     await cleanup_temp_music()
     # Adding bot status
-    await change_status()
+    change_status.start()
 
 
+@tasks.loop(minutes=5)
 async def change_status():
-    while True:
-        with open('src/resources/bot_statuses.txt', 'r', encoding='utf-8') as file:
-            for line in file:
-                status = random.choice(line.split(','))
-                await bot.change_presence(status=str(status))
-                await asyncio.sleep(300)  # change status every 5 mins
+    activity_type, status_list = choose_activity()
+    if status_list:
+        status = random.choice(status_list)
+        activity = discord.Game(name=status) if activity_type == discord.ActivityType.playing else discord.Activity(
+            type=activity_type, name=status)
+        await bot.change_presence(activity=activity)
+        logging.info(f"Bot's current activity set to: {status} - Type: {activity_type}")
+
+
+def choose_activity():
+    try:
+        with open('src/resources/activities.json', 'r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        activity_type = random.choice(['playing', 'listening'])
+        status_list = data.get(activity_type, [])
+
+        return (discord.ActivityType.playing, status_list) if activity_type == 'playing' else (
+            discord.ActivityType.listening, status_list)
+
+    except FileNotFoundError:
+        logging.error("Error: File 'activities.json' not found.")
+        return discord.ActivityType.playing, []
+
+
+def read_file_lines(filename):
+    try:
+        with open(filename, 'r', encoding='utf-8') as file:
+            lines = [line.strip() for line in file.readlines() if line.strip()]
+        return lines
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        return []
 
 
 async def cleanup_temp_music():

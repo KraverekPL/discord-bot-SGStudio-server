@@ -203,10 +203,12 @@ class ReactionCog(commands.Cog):
                 if keyword.lower() in message.content.lower():
                     # Send a random response if the random condition is met
                     magic_random = random.random()
-                    if magic_random < 0.3:
+                    is_on_bot_channel = message.channel.id == 1214161316177125376  # ID of 'bot_channel'
+                    if (is_on_bot_channel and magic_random < 0.8) or (not is_on_bot_channel and magic_random < 0.2):
                         random_response = random.choice(response)
                         logging.info(
-                            f"Keyword response for {message.author} on_message: {keyword.lower()}:{random_response}")
+                            f"Keyword response for {message.author} on_message: {keyword.lower()}:{random_response}. "
+                            f"random.random():{magic_random}")
                         await message.channel.send(content=random_response)
                         return
                     else:
