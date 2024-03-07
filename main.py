@@ -33,7 +33,7 @@ async def on_ready():
                 logging.error(f'Error loading cog {filename[:-3]}: {e}')
 
     # Adding bot status
-    await zmien_status()
+    await change_status()
 
     logging.info(f'All cogs successfully loaded!')
     logging.info(f'Log level: ' + os.getenv('log_level'))
@@ -43,7 +43,7 @@ async def on_ready():
     await cleanup_temp_music()
 
 
-async def zmien_status():
+async def change_status():
     while True:
         with open('src/resources/bot_statuses.txt', 'r', encoding='utf-8') as file:
             for line in file:
