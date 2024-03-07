@@ -43,7 +43,7 @@ async def on_ready():
     await cleanup_temp_music()
 
 
-async def zmien_status():
+async def change_status():
     while True:
         with open('src/resources/bot_statuses.txt', 'r', encoding='utf-8') as file:
             for line in file:
