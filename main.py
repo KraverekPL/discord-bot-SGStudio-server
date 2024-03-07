@@ -32,15 +32,14 @@ async def on_ready():
             except commands.ExtensionError as e:
                 logging.error(f'Error loading cog {filename[:-3]}: {e}')
 
-    # Adding bot status
-    await change_status()
-
     logging.info(f'All cogs successfully loaded!')
     logging.info(f'Log level: ' + os.getenv('log_level'))
     logging.info(f'Bot silent time: ' + os.getenv('bot_silent_time'))
     logging.info(f'Enable AI (OpenAI): ' + os.getenv('enabled_ai'))
     logging.info('---------------------------------------------------------------')
     await cleanup_temp_music()
+    # Adding bot status
+    await change_status()
 
 
 async def change_status():
