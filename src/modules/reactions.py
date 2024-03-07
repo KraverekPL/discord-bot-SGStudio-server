@@ -68,6 +68,9 @@ def load_responses_to_taunts():
 def chat_with_gpt(message_to_ai):
     # Send a message to the ChatGPT API and get a response
     try:
+        max_openai_length = 150
+        if len(message_to_ai) > max_openai_length:
+            return None
         token = os.getenv('open_ai_token')
         model_ai = os.getenv('open_ai_model')
         max_tokens = int(os.getenv('open_ai_max_tokens'))
@@ -191,8 +194,12 @@ class ReactionCog(commands.Cog):
                 if enable_ai:
                     short_answer = '. Odpowiedz krótko.'
                     response_from_ai = chat_with_gpt(message.content.strip() + short_answer)
-                    await message.channel.send(response_from_ai)
-                    logging.info(f"Response from OpenAi with msg: {message.content.strip()}:{response_from_ai}")
+                    if response_from_ai is not None:
+                        await message.channel.send(response_from_ai)
+                        logging.info(f"Response from OpenAi with msg: {message.content.strip()}:{response_from_ai}")
+                    else:
+                        await message.channel.send('Nie wiem :(')
+                        logging.info(f"message was too long. Skipping API call.")
                 else:
                     await message.channel.send('Nie wiem :(')
                     logging.info(f"OpenAi API is turned off. Sending default message.")
