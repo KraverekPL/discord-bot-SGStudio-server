@@ -23,7 +23,7 @@ def get_tools():
                     "properties": {
                         "user_id": {
                             "type": "string",
-                            "description": "User ID can be found in format <@1234567890> or can be a name."
+                            "description": "User format <@1234567890> or can be a name."
                         }
                     },
                     "required": ["user_id"]
@@ -54,7 +54,7 @@ def get_messages(ai_behaviour: str, message_to_ai):
     user_id_pattern = re.compile(r'<@!?1214162287259025428>')  # remove bot id from msg
     cleaned_content = user_id_pattern.sub('', message_to_ai.content.strip())
     user_name = get_user_name_from_id(message_to_ai.author.id)
-    prompt = f'User {user_name} asked: {cleaned_content}. Use short response.'
+    prompt = f'Jestem {user_name}.Powiedz mi: {cleaned_content}.Odpowiedz krótko.'
     messages = [
         {
             "role": "system",
@@ -87,14 +87,14 @@ def get_user_name_from_id(user_id: int):
 
 def get_user_activity(guild_context: discord.Guild, user_id: str):
     user_activity = ''
-    if '<@' in user_id and type(user_id) is int:
+    if '<@' in user_id or type(user_id) is int:
         user_id = int(user_id.replace('<@', '').replace('>', ''))
         user = guild_context.get_member(int(user_id))
         if user is None or user.activity is None:
             user_activity = get_custom_activity_per_user()
-            logging.info('User activity: None')
+            logging.info('User activity 1: None')
         for activity in user.activities:
-            logging.info(f'User activity: {user.activity}')
+            logging.info(f'User activity 2: {user.activity}')
             if isinstance(activity, discord.Spotify):
                 user_activity = f'User is listening to {user.activity.title} by {user.activity.artist} on Spotify'
             elif activity.type == discord.ActivityType.playing:
@@ -109,7 +109,7 @@ def get_user_activity(guild_context: discord.Guild, user_id: str):
                 user_activity = get_custom_activity_per_user()
     else:
         user_activity = get_custom_activity_per_user()
-    logging.info(f'User activity: {user_activity}')
+    logging.info(f'User activity 3: {user_activity}')
     return user_activity
 
 
