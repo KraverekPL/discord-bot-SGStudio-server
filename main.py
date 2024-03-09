@@ -42,7 +42,7 @@ async def on_ready():
     change_status.start()
 
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=15)
 async def change_status():
     activity_type, status_list = choose_activity()
     if status_list:
@@ -55,7 +55,7 @@ async def change_status():
 
 def choose_activity():
     try:
-        with open('src/resources/activities.json', 'r', encoding='utf-8') as file:
+        with open('src/resources/bot_activities.json', 'r', encoding='utf-8') as file:
             data = json.load(file)
 
         activity_type = random.choice(['playing', 'listening'])
@@ -65,7 +65,7 @@ def choose_activity():
             discord.ActivityType.listening, status_list)
 
     except FileNotFoundError:
-        logging.error("Error: File 'activities.json' not found.")
+        logging.error("Error: File 'bot_activities.json' not found.")
         return discord.ActivityType.playing, []
 
 
@@ -80,9 +80,8 @@ def read_file_lines(filename):
 
 
 async def cleanup_temp_music():
-    folder_path = 'temp_music'  # Ustaw odpowiednią ścieżkę do folderu
+    folder_path = 'temp_music'
     try:
-        # Usuń wszystkie pliki w folderze temp_music
         for filename in os.listdir(folder_path):
             file_path = os.path.join(folder_path, filename)
             if os.path.isfile(file_path):

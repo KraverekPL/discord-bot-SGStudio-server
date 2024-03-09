@@ -3,10 +3,11 @@ import asyncio
 import logging
 import os
 import random
-import openai
-from discord.ext import commands
-from openai import OpenAI
 
+import discord
+from discord.ext import commands
+
+from ..services.open_ai import OpenAIService
 from ..utils.commons import remove_polish_chars
 
 
@@ -65,49 +66,21 @@ def load_responses_to_taunts():
     return responses_to_taunts
 
 
-def chat_with_gpt(message_to_ai):
-    # Send a message to the ChatGPT API and get a response
-    try:
-        max_openai_length = 150
-        if len(message_to_ai) > max_openai_length:
-            return None
-        token = os.getenv('open_ai_token')
-        model_ai = os.getenv('open_ai_model')
-        max_tokens = int(os.getenv('open_ai_max_tokens'))
-        ai_behaviour = os.getenv('ai_behaviour')
-        response_from_ai = None
-        if 'gpt-3.5-turbo-instruct' in model_ai:
-            client = OpenAI(api_key=token)
-            response = client.completions.create(
-                prompt=message_to_ai,
-                model=model_ai,
-                top_p=float(os.getenv('open_ai_top_p')),
-                max_tokens=max_tokens,
-                temperature=float(os.getenv('open_ai_temperature')))
-            response_from_ai = response.choices[0].text
-        elif 'gpt-3.5-turbo-0125' in model_ai:
-            messages = [
-                {
-                    "role": "system",
-                    "content": ai_behaviour
-                },
-                {
-                    "role": "user",
-                    "content": message_to_ai
-                }
-            ]
-            openai.api_key = token
-            response = openai.chat.completions.create(
-                messages=messages,
-                model=model_ai,
-                max_tokens=max_tokens
-            )
-            response_from_ai = response.choices[0].message.content
+def get_user_activity(guild_context: discord.Guild, user_id: str):
+    if '<@' in user_id:
+        user_id = int(user_id.replace('<@', '').replace('>', ''))
 
-        logging.info(f"Response from API OpenAI: {response_from_ai}. Costs: {response.usage.prompt_tokens}+{response.usage.completion_tokens}={response.usage.total_tokens}")
-        return response_from_ai
-    except Exception as e:
-        logging.error(f"Error during calling OpenAI API e: {e.with_traceback()}")
+    user = guild_context.get_member(int(user_id))
+    if user is None:
+        return 'Cannot obtain current activity for this user.'
+    if user.activity is None:
+        return 'User is not doing anything'
+    for activity in user.activities:
+        if isinstance(activity, discord.Spotify):
+            return f'User is listening to {user.activity.title} by {user.activity.artist} on Spotify'
+        elif activity.type == discord.ActivityType.playing:
+            return f'User is playing {user.activity.name}'
+    return f'User is not doing anything'
 
 
 class ReactionCog(commands.Cog):
@@ -162,7 +135,7 @@ class ReactionCog(commands.Cog):
                     logging.info(
                         f"ReactionCog will be disabled for {sleep_time}. Status: {self.get_bot_reaction_status()}")
                     await message.channel.send(f"Przepraszam za spam. Wyłączam moduł rekacji na 15 minut.")
-                    asyncio.create_task(self.delayed_reaction_enable(900))
+                    await asyncio.create_task(self.delayed_reaction_enable(900))
                     return
 
         # Check for responses to taunts bot when the bot is mentioned to be silent
@@ -183,6 +156,7 @@ class ReactionCog(commands.Cog):
         # If a bot is mentioned, it will say hello or answer your question depending on the content of the message
         if self.bot.user.mentioned_in(message):
             enable_ai = os.getenv("enabled_ai", 'False').lower() in ('true', '1', 't')
+            open_ai_model = os.getenv('open_ai_model')
             if message.content.strip() == f'<@{self.bot.user.id}>':
                 # If the message is empty and the bot is not mentioned - send friendly wake up
                 rng_response_for_friendly_taunt = random.choice(self.responses_to_taunts)
@@ -192,8 +166,8 @@ class ReactionCog(commands.Cog):
             else:
                 # If the message has content and the bot is mentioned - send it to Open API gateway
                 if enable_ai:
-                    short_answer = '. Odpowiedz krótko.'
-                    response_from_ai = chat_with_gpt(message.content.strip() + short_answer)
+                    open_ai_service = OpenAIService(open_ai_model)
+                    response_from_ai = open_ai_service.chat_with_gpt(message)
                     if response_from_ai is not None:
                         await message.channel.send(response_from_ai)
                         logging.info(f"Response from OpenAi with msg: {message.content.strip()}:{response_from_ai}")
@@ -211,7 +185,7 @@ class ReactionCog(commands.Cog):
                     # Send a random response if the random condition is met
                     magic_random = random.random()
                     is_on_bot_channel = message.channel.id == 1214161316177125376  # ID of 'bot_channel'
-                    if (is_on_bot_channel and magic_random < 0.8) or (not is_on_bot_channel and magic_random < 0.2):
+                    if (is_on_bot_channel and magic_random < 0.4) or (not is_on_bot_channel and magic_random < 0.2):
                         random_response = random.choice(response)
                         logging.info(
                             f"Keyword response for {message.author} on_message: {keyword.lower()}:{random_response}. "
