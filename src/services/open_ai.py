@@ -54,7 +54,7 @@ def get_messages(ai_behaviour: str, message_to_ai):
     user_id_pattern = re.compile(r'<@!?1214162287259025428>')  # remove bot id from msg
     cleaned_content = user_id_pattern.sub('', message_to_ai.content.strip())
     user_name = get_user_name_from_id(message_to_ai.author.id)
-    prompt = f'Jestem {user_name}.Powiedz mi: {cleaned_content}.Odpowiedz krótko.'
+    prompt = f'Jestem {user_name}.Powiedz mi: {cleaned_content}.'
     messages = [
         {
             "role": "system",

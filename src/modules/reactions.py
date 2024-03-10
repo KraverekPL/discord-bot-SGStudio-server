@@ -66,21 +66,19 @@ def load_responses_to_taunts():
     return responses_to_taunts
 
 
-def get_user_activity(guild_context: discord.Guild, user_id: str):
-    if '<@' in user_id:
-        user_id = int(user_id.replace('<@', '').replace('>', ''))
-
-    user = guild_context.get_member(int(user_id))
-    if user is None:
-        return 'Cannot obtain current activity for this user.'
-    if user.activity is None:
-        return 'User is not doing anything'
-    for activity in user.activities:
-        if isinstance(activity, discord.Spotify):
-            return f'User is listening to {user.activity.title} by {user.activity.artist} on Spotify'
-        elif activity.type == discord.ActivityType.playing:
-            return f'User is playing {user.activity.name}'
-    return f'User is not doing anything'
+async def get_response_from_openai(enable_ai, message, open_ai_model):
+    if enable_ai:
+        open_ai_service = OpenAIService(open_ai_model)
+        response_from_ai = open_ai_service.chat_with_gpt(message)
+        if response_from_ai is not None:
+            await message.channel.send(response_from_ai)
+            logging.info(f"Response from OpenAi with msg: {message.content.strip()}:{response_from_ai}")
+        else:
+            await message.channel.send('Nie wiem :(')
+            logging.info(f"message was too long. Skipping API call.")
+    else:
+        await message.channel.send('Nie wiem :(')
+        logging.info(f"OpenAi API is turned off. Sending default message.")
 
 
 class ReactionCog(commands.Cog):
@@ -100,6 +98,76 @@ class ReactionCog(commands.Cog):
     def get_bot_reaction_status(self):
         return "disabled" if self.DISABLE_REACTIONS else "enabled"
 
+    async def disable_reactions_if_asked(self, message):
+        sleep_time = os.getenv('bot_silent_time')
+        if self.bot.user.mentioned_in(message):
+            # Toggle reactions on/off.
+            spam_hooks = ['morda', 'mordę', 'morde']
+            for word in spam_hooks:
+                if word in message.content.lower():
+                    self.DISABLE_REACTIONS = not self.DISABLE_REACTIONS
+                    logging.info(
+                        f"ReactionCog will be disabled for {sleep_time}. Status: {self.get_bot_reaction_status()}")
+                    await message.channel.send(f"Przepraszam za spam. Wyłączam moduł rekacji na 15 minut.")
+                    await asyncio.create_task(self.delayed_reaction_enable(900))
+                    return True
+        return False
+
+    async def get_taunt_response_from_bot(self, message):
+        if self.bot.user.mentioned_in(message):
+            list_of_words = ["wylacze", "zamkne", "wywale", "wyrzuce", "zamkne", "spale"]
+            list_of_responses = ["Nieee! Błagam!", "Ale czemu? Byłem grzeczny!", "To stanowczo wina świetlika!",
+                                 "Za karę będę Ci dzielić przez zero!", "Nie!!!!!!! Nie rób tego!",
+                                 "Przepraszam, nieeee! Chce jeszcze dokonczyć oglądac memsiki."]
+            for word in list_of_words:
+                # Check for words in the list, removing Polish characters in-fly
+                normalized_message = remove_polish_chars(message.content.lower())
+                if word in normalized_message:
+                    rng_response_for_scary_taunt = random.choice(list_of_responses)
+                    await message.channel.send(rng_response_for_scary_taunt)
+                    logging.info(f"Response for scary taunt a bot with {word}:{rng_response_for_scary_taunt}")
+                    return True
+        return False
+
+    async def get_reaction_for_random_message(self, message):
+        if not self.bot.user.mentioned_in(message):
+            for keyword, response in self.keyword_responses.items():
+                if keyword.lower() in message.content.lower():
+                    # Send a random response if the random condition is met
+                    magic_random = random.random()
+                    is_on_bot_channel = message.channel.id == 1214161316177125376  # ID of 'bot_channel'
+                    if (is_on_bot_channel and magic_random < 0.4) or (not is_on_bot_channel and magic_random < 0.2):
+                        random_response = random.choice(response)
+                        logging.info(
+                            f"Keyword response for {message.author} on_message: {keyword.lower()}:{random_response}. "
+                            f"random.random():{magic_random}")
+                        await message.channel.send(content=random_response)
+                        return True
+                    else:
+                        logging.info(f"No response - random.random():{magic_random} decided :)")
+                        return True
+        return False
+
+    async def get_reaction_when_bot_is_mentioned(self, message):
+        if self.bot.user.mentioned_in(message):
+            enable_ai = os.getenv("enabled_ai", 'False').lower() in ('true', '1', 't')
+            open_ai_model = os.getenv('open_ai_model')
+            if message.content.strip() == f'<@{self.bot.user.id}>':
+                # If the message is empty and the bot is not mentioned - send friendly wake up
+                await self.send_friendly_awake(message)
+                return True
+            else:
+                # If the message has content and the bot is mentioned - send it to Open API gateway
+                await get_response_from_openai(enable_ai, message, open_ai_model)
+                return True
+        return False
+
+    async def send_friendly_awake(self, message):
+        rng_response_for_friendly_taunt = random.choice(self.responses_to_taunts)
+        await message.channel.send(rng_response_for_friendly_taunt)
+        logging.info(
+            f"Response for call friendly bot with {message.content.strip()}:{rng_response_for_friendly_taunt}")
+
     @commands.command(name='pobudka')
     async def wake_up_bot(self, ctx):
         """Command to wake up the bot by administrators."""
@@ -115,7 +183,6 @@ class ReactionCog(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         """Event handler called when a message is received."""
-        sleep_time = os.getenv('bot_silent_time')
         # Ignore messages from bot
         if message.author.bot:
             return
@@ -126,75 +193,20 @@ class ReactionCog(commands.Cog):
             return
 
         # Disable reactions for period of time if asked by user
-        if self.bot.user.mentioned_in(message):
-            # Toggle reactions on/off.
-            spam_hooks = ['morda', 'mordę', 'morde']
-            for word in spam_hooks:
-                if word in message.content.lower():
-                    self.DISABLE_REACTIONS = not self.DISABLE_REACTIONS
-                    logging.info(
-                        f"ReactionCog will be disabled for {sleep_time}. Status: {self.get_bot_reaction_status()}")
-                    await message.channel.send(f"Przepraszam za spam. Wyłączam moduł rekacji na 15 minut.")
-                    await asyncio.create_task(self.delayed_reaction_enable(900))
-                    return
+        if await self.disable_reactions_if_asked(message):
+            return
 
         # Check for responses to taunts bot when the bot is mentioned to be silent
-        if self.bot.user.mentioned_in(message):
-            list_of_words = ["wylacze", "zamkne", "wywale", "wyrzuce", "zamkne", "spale"]
-            list_of_responses = ["Nieee! Błagam!", "Ale czemu? Byłem grzeczny!", "To stanowczo wina świetlika!",
-                                 "Za karę będę Ci dzielić przez zero!", "Nie!!!!!!! Nie rób tego!",
-                                 "Przepraszam, nieeee! Chce jeszcze dokonczyć oglądac memsiki."]
-            for word in list_of_words:
-                # Check for words in the list, removing Polish characters in-fly
-                normalized_message = remove_polish_chars(message.content.lower())
-                if word in normalized_message:
-                    rng_response_for_scary_taunt = random.choice(list_of_responses)
-                    await message.channel.send(rng_response_for_scary_taunt)
-                    logging.info(f"Response for scary taunt a bot with {word}:{rng_response_for_scary_taunt}")
-                    return
+        if await self.get_taunt_response_from_bot(message):
+            return
 
         # If a bot is mentioned, it will say hello or answer your question depending on the content of the message
-        if self.bot.user.mentioned_in(message):
-            enable_ai = os.getenv("enabled_ai", 'False').lower() in ('true', '1', 't')
-            open_ai_model = os.getenv('open_ai_model')
-            if message.content.strip() == f'<@{self.bot.user.id}>':
-                # If the message is empty and the bot is not mentioned - send friendly wake up
-                rng_response_for_friendly_taunt = random.choice(self.responses_to_taunts)
-                await message.channel.send(rng_response_for_friendly_taunt)
-                logging.info(
-                    f"Response for call friendly bot with {message.content.strip()}:{rng_response_for_friendly_taunt}")
-            else:
-                # If the message has content and the bot is mentioned - send it to Open API gateway
-                if enable_ai:
-                    open_ai_service = OpenAIService(open_ai_model)
-                    response_from_ai = open_ai_service.chat_with_gpt(message)
-                    if response_from_ai is not None:
-                        await message.channel.send(response_from_ai)
-                        logging.info(f"Response from OpenAi with msg: {message.content.strip()}:{response_from_ai}")
-                    else:
-                        await message.channel.send('Nie wiem :(')
-                        logging.info(f"message was too long. Skipping API call.")
-                else:
-                    await message.channel.send('Nie wiem :(')
-                    logging.info(f"OpenAi API is turned off. Sending default message.")
+        if await self.get_reaction_when_bot_is_mentioned(message):
+            return
 
         # Check for keyword and respond with proper response from file if keyword exist
-        if not self.bot.user.mentioned_in(message):
-            for keyword, response in self.keyword_responses.items():
-                if keyword.lower() in message.content.lower():
-                    # Send a random response if the random condition is met
-                    magic_random = random.random()
-                    is_on_bot_channel = message.channel.id == 1214161316177125376  # ID of 'bot_channel'
-                    if (is_on_bot_channel and magic_random < 0.4) or (not is_on_bot_channel and magic_random < 0.2):
-                        random_response = random.choice(response)
-                        logging.info(
-                            f"Keyword response for {message.author} on_message: {keyword.lower()}:{random_response}. "
-                            f"random.random():{magic_random}")
-                        await message.channel.send(content=random_response)
-                        return
-                    else:
-                        logging.info(f"No response - random.random():{magic_random} decided :)")
-                        return
+        if await self.get_reaction_for_random_message(message):
+            return
 
 
 async def setup(bot):
