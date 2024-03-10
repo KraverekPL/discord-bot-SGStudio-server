@@ -1,3 +1,5 @@
+import json
+import logging
 import os
 from __main__ import bot
 
@@ -17,3 +19,26 @@ def remove_polish_chars(text):
         'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N', 'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
     }
     return ''.join(mapping.get(char, char) for char in text)
+
+
+def load_resources_from_file(file_name):
+    if file_name:
+        current_path = os.path.abspath(__file__)
+        current_directory = os.path.dirname(current_path)
+        file_path = os.path.join(current_directory, '..', 'resources', file_name)
+        if file_path.endswith('.json'):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    config_data = json.load(file)
+                    return config_data
+            except json.JSONDecodeError as e:
+                logging.error(f'Error during open json file {file_name}: {e}')
+                return
+        else:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    config_data = file.read()
+                    return config_data.splitlines()
+            except Exception as e:
+                logging.error(f'Error during open normal file {file_name}: {e}')
+            return

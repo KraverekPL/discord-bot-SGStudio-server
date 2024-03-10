@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import json
 import logging
 import os
 import random
@@ -7,31 +8,24 @@ import random
 from discord.ext import commands
 
 from ..services.open_ai import OpenAIService
-from ..utils.commons import remove_polish_chars
+from ..utils.commons import remove_polish_chars, load_resources_from_file
 
 
 def load_keyword_responses():
     """Load keywords and responses from file."""
     main_dictionary = {}
     try:
-        current_path = os.path.abspath(__file__)
-        current_directory = os.path.dirname(current_path)
-        file_path = os.path.join(current_directory, '..', 'resources', 'keyword_responses.txt')
-        with open(file_path, 'r', encoding='utf-8') as file:
-            for line in file:
-                if ':' in line:
-                    keywords, responses = line.strip().split(':', 1)
-                    for single_keyword in keywords.split(','):
-                        main_dictionary[single_keyword] = responses.strip().split('|')
-                else:
-                    logging.warning(f"Invalid line format in the file: {line}")
-    except FileNotFoundError:
-        logging.error(f"File not found: {file_path}")
-        return {}
+        file = load_resources_from_file('keyword_responses.txt')
+        for line in file:
+            if ':' in line:
+                keywords, responses = line.strip().split(':', 1)
+                for single_keyword in keywords.split(','):
+                    main_dictionary[single_keyword] = responses.strip().split('|')
+            else:
+                logging.warning(f"Invalid line format in the file: {line}")
     except Exception as e:
         logging.error(f"Exception e: {e}")
         return {}
-    logging.debug(f"Loaded keyword_responses: {main_dictionary}")
 
     # Checking if dictionary is loaded properly
     if not main_dictionary:
@@ -42,26 +36,17 @@ def load_keyword_responses():
     for keyword, response in main_dictionary.items():
         if not response:
             logging.warning(f"Empty response for keyword: {keyword}.")
+    logging.info(f"Loaded keyword_responses.txt")
     return main_dictionary
 
 
 def load_responses_to_taunts():
     """Load responses to taunts from the specified file."""
     responses_to_taunts = []
-    try:
-        # Get the current file path
-        current_path = os.path.abspath(__file__)
-        current_directory = os.path.dirname(current_path)
-        file_path = os.path.join(current_directory, '..', 'resources', 'responses_to_taunts.txt')
-        # Open the file and read each line
-        with open(file_path, 'r', encoding='utf-8') as file:
-            for line in file:
-                responses_to_taunts.append(line)
-    except FileNotFoundError:
-        # Handle the case where the file is not found
-        logging.error(f"File not found: {file_path}")
-        return {}
+    for line in load_resources_from_file('responses_to_taunts.txt'):
+        responses_to_taunts.append(line)
     # Return the list of responses_to_taunts
+    logging.info(f"Loaded file responses_to_taunts.txt")
     return responses_to_taunts
 
 
@@ -114,10 +99,10 @@ class ReactionCog(commands.Cog):
 
     async def get_taunt_response_from_bot(self, message):
         if self.bot.user.mentioned_in(message):
-            list_of_words = ["wylacze", "zamkne", "wywale", "wyrzuce", "zamkne", "spale"]
-            list_of_responses = ["Nieee! Błagam!", "Ale czemu? Byłem grzeczny!", "To stanowczo wina świetlika!",
-                                 "Za karę będę Ci dzielić przez zero!", "Nie!!!!!!! Nie rób tego!",
-                                 "Przepraszam, nieeee! Chce jeszcze dokonczyć oglądac memsiki."]
+            config_data = load_resources_from_file('bot_scary_responses.json')
+            list_of_words = config_data.get("list_of_words", [])
+            list_of_responses = config_data.get("list_of_responses", [])
+
             for word in list_of_words:
                 # Check for words in the list, removing Polish characters in-fly
                 normalized_message = remove_polish_chars(message.content.lower())
