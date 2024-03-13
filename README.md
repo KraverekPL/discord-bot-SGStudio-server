@@ -29,8 +29,14 @@ To use the bot, follow these steps:
 - Adjust the number of available jokes or specify a source for joke retrieval.
 - Define keyword responses in the `keyword_responses.txt` file.
 
-## OpenAI Conversation
-To engage in a conversation with the bot using OpenAI, mention the bot and provide your message. The bot will respond with an intelligent reply.
+## Conversations with OpenAI or VertexAI
+
+Engage in conversations with Mały Warchlak using the powerful capabilities of OpenAI or VertexAI from Google. Simply mention the bot and provide your message. The bot will respond with an intelligent reply.
+
+Additionally, Mały Warchlak leverages VertexAI's advanced features, including:
+
+- **Video Analysis**: VertexAI can analyze video content, providing insights and information about the content of videos.
+- **Image Description**: VertexAI is capable of describing the content of images, enabling Mały Warchlak to provide detailed descriptions or analysis of images shared on Discord.
 
 ## Music Playback
 
