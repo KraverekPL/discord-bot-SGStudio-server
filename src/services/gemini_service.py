@@ -37,10 +37,6 @@ safety_settings = {
 PROJECT_ID = os.getenv('project_name')
 LOCATION = os.getenv('location')
 
-credentials = service_account.Credentials.from_service_account_file(
-    "credentials.json"
-)
-
 # Load Gemini Pro
 text_model = GenerativeModel(model_name="gemini-1.0-pro", generation_config=text_generation_config,
                              safety_settings=safety_settings)
