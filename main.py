@@ -5,7 +5,10 @@ import os
 import random
 import json
 import discord
+from discord.ext import commands
 
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part
 from dotenv import load_dotenv
 from discord.ext import commands, tasks
 
@@ -30,7 +33,7 @@ async def on_ready():
                 await bot.load_extension(f'src.modules.{filename[:-3]}')
                 logging.info(f'Loaded cog: {filename[:-3]}')
             except commands.ExtensionError as e:
-                logging.error(f'Error loading cog {filename[:-3]}: {e.with_traceback()}')
+                logging.error(f'Error loading cog {filename[:-3]}: {e}')
 
     logging.info(f'All cogs successfully loaded!')
     logging.info(f'Log level: ' + os.getenv('log_level'))
@@ -89,6 +92,27 @@ async def cleanup_temp_music():
                 logging.info(f"Deleting file: {file_path}")
     except Exception as e:
         logging.error(f'Exception during cleaning "temp_music": {e}')
+
+
+@bot.command(name='dupa', help='Wyłącza bota')
+async def generate_text(ctx):
+    # Initialize Vertex AI
+    vertexai.init(project='discordbotwarchlak', location='europe-central2')
+    # Load the model
+    multimodal_model = GenerativeModel("gemini-1.0-pro-vision")
+    # Query the model
+    response = multimodal_model.generate_content(
+        [
+            # Add an example image
+            Part.from_uri(
+                "gs://generativeai-downloads/images/scones.jpg", mime_type="image/jpeg"
+            ),
+            # Add an example query
+            "what is shown in this image?",
+        ]
+    )
+    print(response)
+    return response.text
 
 
 async def main():

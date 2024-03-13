@@ -7,6 +7,7 @@ import random
 
 from discord.ext import commands
 
+from ..services.gemini_service import chat_with_gemini
 from ..services.open_ai import OpenAIService
 from ..utils.commons import remove_polish_chars, load_resources_from_file
 
@@ -50,8 +51,10 @@ def load_responses_to_taunts():
     return responses_to_taunts
 
 
-async def get_response_from_openai(enable_ai, message, open_ai_model):
+async def get_response_from_openai(message):
+    enable_ai = os.getenv('enabled_ai')
     if enable_ai:
+        open_ai_model = os.getenv('open_ai_model')
         open_ai_service = OpenAIService(open_ai_model)
         response_from_ai = open_ai_service.chat_with_gpt(message)
         if response_from_ai is not None:
@@ -134,16 +137,19 @@ class ReactionCog(commands.Cog):
 
     async def get_reaction_when_bot_is_mentioned(self, message):
         if self.bot.user.mentioned_in(message):
-            enable_ai = os.getenv("enabled_ai", 'False').lower() in ('true', '1', 't')
-            open_ai_model = os.getenv('open_ai_model')
-            if message.content.strip() == f'<@{self.bot.user.id}>':
+            if message.content.strip() == f'<@{self.bot.user.id}>' and not message.attachments:
                 # If the message is empty and the bot is not mentioned - send friendly wake up
                 await self.send_friendly_awake(message)
                 return True
             else:
                 # If the message has content and the bot is mentioned - send it to Open API gateway
-                await get_response_from_openai(enable_ai, message, open_ai_model)
-                return True
+                which_ai = os.getenv('which_ai')
+                if 'openai' in which_ai:
+                    await get_response_from_openai(message)
+                    return True
+                else:
+                    await chat_with_gemini(message)
+                    return True
         return False
 
     async def send_friendly_awake(self, message):
