@@ -67,13 +67,14 @@ async def chat_with_gemini(message):
                     resized_img_data = io.BytesIO()
                     resized_img.save(resized_img_data, format='JPEG')
                     resized_img_data.seek(0)
-                await message.channel.send(file=discord.File(resized_img_data, filename='resized_image.jpg'))
+                # await message.channel.send(file=discord.File(resized_img_data, filename='resized_image.jpg'))
                 image = generative_models.Part.from_data(resized_img_data.getvalue(),
                                                          mime_type=get_correct_mimetype(attachment.url))
-                prompt = "Co jest pokazane na zdjęciu?"
-                if message.content:
-                    prompt = message.content
-                model_response = image_model.generate_content([prompt, image])
+                prompt = "Dokładnie opisz zdjęcie"
+                if not cleaned_text:
+                    cleaned_text = prompt
+                logging.info(f"prompt: {cleaned_text}")
+                model_response = image_model.generate_content([cleaned_text, image])
                 logging.info("Response:" + model_response.text)
                 await message.reply(model_response.text)
         else:
